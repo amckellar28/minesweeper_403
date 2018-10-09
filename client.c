@@ -32,6 +32,11 @@ typedef struct
 
 
 int main(int argc, char **argv){
+	if(argc != 3){
+		fprintf(stderr, "usage: client_hostname port_number\n");
+		exit(1);
+	}
+
 	Tile alice = {6006,true,false};
 	Gamestate wow;
 	
