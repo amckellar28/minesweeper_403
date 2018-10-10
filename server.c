@@ -48,6 +48,25 @@ void place_mines()
 	}
 }
 
+int *Receive_Array_Int_data(int socket_identifier, int size){
+	int number_of_bytes, i=0;
+	uint16_t statistics;
+	int *results = malloc(sizeof(int)*size);
+	
+	for(i=0;i<size;i++){
+	
+		if((number_of_bytes = recv(socket_identifier, &statistics, sizeof(uint16_t),0))== -1){
+			perror("recv");
+			exit(EXIT_FAILURE);
+		}
+		
+		results[i] = ntohs(statistics);
+	}
+	
+	return results;
+	
+}
+
 int main(int argc, char **argv){
 	FILE *input_file = fopen("Authentication.txt","r");
 	char str[60];
@@ -137,6 +156,43 @@ int main(int argc, char **argv){
 	}
 	
 	printf("server starts listening ... <3 \n");
+	
+	/* repeat: accept, send, close the connection */
+	/* for every accepted connection, use a seperate process or thread to serve it */
+	while(1){/* main accept() loop */
+		sin_size = sizeof(struct sockaddr_in);
+		if((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size)) == -1){
+			perror("accept");
+			continue;
+		}
+		
+		printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
+		
+		printf("wow");
+		
+		if(!fork()){
+		printf("wow");
+			int *results = Receive_Array_Int_data(new_fd, 30);
+			printf("wow");
+			for(i=0; i<30;i++){
+				printf("%d", results[i]);
+				
+			}
+			
+			if(send(new_fd, "All of array data received by server\n",40,0)==-1)
+				perror("send");
+			close(new_fd);
+			exit(0);
+			
+	
+		}
+		close(new_fd);
+	
+			
+	}
+	
+
+	
 
 
 	for(int i = 0; i < NUM_TILES_X; i++){
