@@ -14,6 +14,7 @@
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
 #define NUM_MINES 10
+#define MAXDATASIZE 1000
 
 #define BACKLOG 10
 
@@ -65,6 +66,22 @@ int *Receive_Array_Int_data(int socket_identifier, int size){
 	
 	return results;
 	
+}
+
+void Recieve_message(int socket){
+	char buf[MAXDATASIZE];
+	int numbytes;
+	
+	if((numbytes = recv(socket, buf, MAXDATASIZE,0))==-1){
+		perror("recv");
+		exit(1);
+	}
+	
+	buf[numbytes] = '\0';
+	buf[numbytes] = '\0';
+	
+	printf("\n%s",buf);
+
 }
 
 int main(int argc, char **argv){
@@ -168,19 +185,33 @@ int main(int argc, char **argv){
 		
 		printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
 		
-		printf("wow");
 		
 		if(!fork()){
-		printf("wow");
+	
 			int *results = Receive_Array_Int_data(new_fd, 30);
-			printf("wow");
+		
 			for(i=0; i<30;i++){
 				printf("%d", results[i]);
 				
 			}
 			
-			if(send(new_fd, "All of array data received by server\n",40,0)==-1)
+			if(send(new_fd, "what\n",40,0)==-1){
 				perror("send");
+			}
+			
+			
+
+			
+			
+			
+			
+			Recieve_message(new_fd);
+			
+			if(send(new_fd, "whats\n",60,0)==-1){
+				perror("send");
+			}
+			
+			
 			close(new_fd);
 			exit(0);
 			

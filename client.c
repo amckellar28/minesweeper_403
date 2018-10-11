@@ -14,7 +14,7 @@
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
 #define NUM_MINES 10
-#define MAXDATASIZE 100 /* max number of bytes we can get at once */
+#define MAXDATASIZE 1000 /* max number of bytes we can get at once */
 
 typedef struct
 {
@@ -38,6 +38,22 @@ void Send_Array_Data(int socket_id, int *myArray){
 		statistics = htons(myArray[i]);
 		send(socket_id, &statistics, sizeof(uint16_t),0);
 	}
+}
+
+void Recieve_message(int socket){
+	char buf[MAXDATASIZE];
+	int numbytes;
+	
+	if((numbytes = recv(socket, buf, MAXDATASIZE,0))==-1){
+		perror("recv");
+		exit(1);
+	}
+	
+	buf[numbytes] = '\0';
+	buf[numbytes] = '\0';
+	
+	printf("\n bbooos%s",buf);
+
 }
 	
 
@@ -82,17 +98,25 @@ int main(int argc, char **argv){
 	
 	Send_Array_Data(sockfd, simpleArray);
 	
-	if((numbytes = recv(sockfd, buf, MAXDATASIZE,0))==-1){
-		perror("recv");
-		exit(1);
-	}
+	Recieve_message(sockfd);
 	
-	buf[numbytes] = '\0';
-	buf[numbytes] = '\0';
+	char message[1000];
+	printf("type something: ");
+	scanf("%s", message);
+	printf("%s",message);
 	
-	printf("\nRecieved %s",buf);
+	if(send(sockfd, message,strlen(message),0)==-1){
+				perror("send");
+			}
+	Recieve_message(sockfd);
+	
+	
+	
+
 	
 	close(sockfd);
+	
+	
 	
 	
 
