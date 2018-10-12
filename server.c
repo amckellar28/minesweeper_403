@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
@@ -20,7 +21,16 @@
 
 int number_user=0;
 
+
 int tester[9][9];
+
+struct user{
+	char name[20];
+	char password[6];
+
+};
+
+typedef struct user auth_users;
 
 bool tile_contains_mine(int x, int y){
 	if(tester[x][y] == 1){
@@ -68,8 +78,8 @@ int *Receive_Array_Int_data(int socket_identifier, int size){
 	
 }
 
-void Recieve_message(int socket){
-	char buf[MAXDATASIZE];
+char *Recieve_message(int socket){
+	char *buf = malloc(sizeof(char)*MAXDATASIZE);
 	int numbytes;
 	
 	if((numbytes = recv(socket, buf, MAXDATASIZE,0))==-1){
@@ -79,13 +89,58 @@ void Recieve_message(int socket){
 	
 	buf[numbytes] = '\0';
 	buf[numbytes] = '\0';
-	
-	printf("\n%s",buf);
+	return buf;
+
+}
+
+void Send_message(int socket, const void* message){
+	if(send(socket, message,1000,0)==-1){
+				perror("send");
+			}
 
 }
 
 int main(int argc, char **argv){
+	char *name;
+	char *password;
+
+
 	FILE *input_file = fopen("Authentication.txt","r");
+	int line = 0;
+
+	char input[512];
+	int letter;
+
+	if(input_file == NULL){
+		perror("Error opening file");
+		return(-1);
+
+	} do {
+		letter = fgetc(input_file);
+		if(feof(input_file)){
+			break;
+		}
+		/*do stuff here */
+		printf("%c", letter);
+	} while(1);
+	/*
+	rewind(input_file);
+
+	while(fgets(input,512,input_file)){
+		line++;
+		printf("| %d -> %s |",line, input);
+		
+		
+
+	}
+	*/
+
+	auth_users *reguser = malloc(sizeof(auth_users)*20);
+	reguser[0].name[0] = 'w';
+
+	
+
+	/*
 	char str[60];
 	
 	if(input_file == 0){
@@ -104,7 +159,7 @@ int main(int argc, char **argv){
 		
 		number_user = line_index - 1;
 		rewind(input_file);
-		
+		*/
 		/*stuff in function
 		char str[60];
 		int index = 0;
@@ -120,9 +175,9 @@ int main(int argc, char **argv){
 				}
 			}
 		}
-		*/
+		
 	}
-	
+	*/
 	
 	fclose(input_file);
 
@@ -195,21 +250,19 @@ int main(int argc, char **argv){
 				
 			}
 			
-			if(send(new_fd, "what\n",40,0)==-1){
-				perror("send");
-			}
 			
-			
+			Send_message(new_fd, "================================================================================\nWelcome to the online Minesweeper gaming system\n================================================================================\n\nYou are required to log on with your registered user name and password.\n\nUsername:");
 
 			
+			name = Recieve_message(new_fd);
+			printf("%s",name);
 			
-			
-			
-			Recieve_message(new_fd);
-			
-			if(send(new_fd, "whats\n",60,0)==-1){
-				perror("send");
-			}
+			Send_message(new_fd, "Password: ");
+
+			password = Recieve_message(new_fd);
+			printf("%s",password);
+
+			Send_message(new_fd, "What is happening?");
 			
 			
 			close(new_fd);

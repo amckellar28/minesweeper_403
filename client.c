@@ -52,7 +52,7 @@ void Recieve_message(int socket){
 	buf[numbytes] = '\0';
 	buf[numbytes] = '\0';
 	
-	printf("\n bbooos%s",buf);
+	printf("\n%s",buf);
 
 }
 	
@@ -101,15 +101,21 @@ int main(int argc, char **argv){
 	Recieve_message(sockfd);
 	
 	char message[1000];
-	printf("type something: ");
+	/*username send*/
 	scanf("%s", message);
-	printf("%s",message);
-	
 	if(send(sockfd, message,strlen(message),0)==-1){
 				perror("send");
 			}
-	Recieve_message(sockfd);
 	
+
+	Recieve_message(sockfd);
+
+	scanf("%s", message);
+	if(send(sockfd, message,strlen(message),0)==-1){
+				perror("send");
+			}
+	
+	Recieve_message(sockfd);
 	
 	
 
