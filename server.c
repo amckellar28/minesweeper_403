@@ -32,8 +32,29 @@ struct user{
 
 typedef struct user auth_users;
 
-bool tile_contains_mine(int x, int y){
-	if(tester[x][y] == 1){
+#define NUM_TILES_X 9
+#define NUM_TILES_Y 9
+#define NUM_MINES 10
+#define MAXDATASIZE 1000 /* max number of bytes we can get at once */
+
+typedef struct
+{
+	int adjacent_mines;
+	bool revealed;
+	bool is_mine;
+} Tile;
+
+typedef struct 
+{
+	int great;
+	Tile tiles[NUM_TILES_X][NUM_TILES_Y];
+}Gamestate;
+
+
+
+
+bool tile_contains_mine(int x, int y, Gamestate *currentstate){
+	if(currentstate->tiles[x][y].is_mine == true){
 		return true;
 	} else{
 		return false;
@@ -42,17 +63,28 @@ bool tile_contains_mine(int x, int y){
 
 }
 
-void place_mines()
+void place_mines(Gamestate *currentstate)
 {
+	/*resetting gamestate*/
+	for(int i = 0; i < 9; i++){
+		for(int j = 0; j < 9; j++){
+			currentstate->tiles[i][j].is_mine = false;
+			currentstate->tiles[i][j].revealed = false;
+			currentstate->tiles[i][j].adjacent_mines = 0;
+		}
+	}
+	
 	for(int i = 0; i < NUM_MINES; i++)
 	{
 		int x, y;
 		do{
 			x = rand() % NUM_TILES_X;
 			y = rand() % NUM_TILES_Y;
-			printf("(%d,%d)",x,y);
-		} while(tile_contains_mine(x, y));
-			tester[x][y] = 1;
+			
+			
+		} while(tile_contains_mine(x, y, currentstate));
+		printf(" %d,%d ",x,y);
+		currentstate->tiles[x][y].is_mine = true;
 		
 	
 		
@@ -78,6 +110,7 @@ int *Receive_Array_Int_data(int socket_identifier, int size){
 	
 }
 
+
 char *Recieve_message(int socket){
 	char *buf = malloc(sizeof(char)*MAXDATASIZE);
 	int numbytes;
@@ -101,8 +134,12 @@ void Send_message(int socket, const void* message){
 }
 
 int main(int argc, char **argv){
+	
 	char *name;
 	char *password;
+
+
+
 
 
 	FILE *input_file = fopen("Authentication.txt","r");
@@ -251,6 +288,8 @@ int main(int argc, char **argv){
 			}
 			
 			
+			
+
 			Send_message(new_fd, "================================================================================\nWelcome to the online Minesweeper gaming system\n================================================================================\n\nYou are required to log on with your registered user name and password.\n\nUsername:");
 
 			
@@ -262,7 +301,85 @@ int main(int argc, char **argv){
 			password = Recieve_message(new_fd);
 			printf("%s",password);
 
-			Send_message(new_fd, "What is happening?");
+			Send_message(new_fd, "Welcome to the Minesweeper gaming system.\n\nPlease enter a selection:\n<1> Play Minesweeper\n<2> Show Leaderboard\n<3> Quit\n\nSelect option (1-3):");
+
+			
+			char *option;
+			option = Recieve_message(new_fd);
+			int decision = atoi(option);
+			
+		
+			if(decision == 3){
+				Send_message(new_fd, "Thanks for playing!!\n");
+				close(new_fd);
+				exit(0);
+
+			}
+			if(decision == 2){
+				Send_message(new_fd, "leaderboard selected");
+				
+
+			}
+			if(decision == 1){
+				Gamestate *currentgame = malloc(sizeof(Gamestate));
+				place_mines(currentgame);
+				char *showtile[9][9];
+				
+				int index = 0;
+				char wow[2] = "\n";
+		
+				printf("\n");
+				for(int j = 0; j < 9; j++){ //column
+					for(int k = 0; k < 9; k++){ //row
+						
+						
+						
+						if(currentgame->tiles[k][j].revealed == false){
+							showtile[k][j] = "P";
+						}else{
+							if(currentgame->tiles[k][j].is_mine == true){
+								showtile[k][j] = "@";
+							}else{
+								if(currentgame->tiles[k][j].adjacent_mines == 0){
+									showtile[k][j] = "0";
+								}else if(currentgame->tiles[k][j].adjacent_mines == 1){
+									showtile[k][j] = "1";
+								} else if(currentgame->tiles[k][j].adjacent_mines == 2){
+									showtile[k][j] = "2";
+								}else if(currentgame->tiles[k][j].adjacent_mines == 3){
+									showtile[k][j] = "3";
+								}else{
+									showtile[k][j] = "4";
+								}
+
+							}
+
+						}
+						printf("%s", showtile[k][j]);
+						
+					}	
+					printf("%s", wow);
+				}
+				const char *gridstate[264] = {" ", " ", "1", "2", "3", "4","5","6","7","8","9", "\n",
+										"-","-","-","-","-","-","-","-","-","-","-", "\n",
+										"A", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n",
+										 "B", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n",
+										 "C", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n",
+										 "D", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n",
+										 "E", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n",
+										 "F", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n",
+										 "G", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n",
+										 "I", "|", showtile[0][0], showtile[1][0], showtile[2][0], showtile[3][0], showtile[4][0],showtile[5][0],showtile[6][0],showtile[7][0],showtile[8][0],"\n"};
+				for(int i = 0; i<132; i++){
+					printf("%s", gridstate[i]);
+				}
+				//char lol[90] = ["1", "3", "2","3"];
+				Send_message(new_fd, gridstate);
+			}
+
+			Send_message(new_fd, "You want to play!!\n");
+
+			name = Recieve_message(new_fd);
 			
 			
 			close(new_fd);
@@ -288,7 +405,7 @@ int main(int argc, char **argv){
 	}
 	
 	
-	place_mines();
+
 	tester[5][4] = 9;
 	printf("\n");
 	printf("\n");

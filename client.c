@@ -53,6 +53,7 @@ void Recieve_message(int socket){
 	buf[numbytes] = '\0';
 	
 	printf("\n%s",buf);
+	
 
 }
 	
@@ -60,6 +61,7 @@ void Recieve_message(int socket){
 
 
 int main(int argc, char **argv){
+	Gamestate *minegame = malloc(sizeof(Gamestate));
 	int sockfd, numbytes, i=0;
 	char buf[MAXDATASIZE];
 	struct hostent *he;
@@ -116,6 +118,34 @@ int main(int argc, char **argv){
 			}
 	
 	Recieve_message(sockfd);
+
+	int decision;
+	while(1){
+	scanf("%s", message);
+	decision = atoi(message);
+	if(decision == 1 ||decision == 2||decision == 3){
+				break;
+			}
+	printf("\nPlease select one of the three options: \n");
+	}
+	
+	if(send(sockfd, message,strlen(message),0)==-1){
+				perror("send");
+			}
+	
+	
+	if(decision ==  3){
+		Recieve_message(sockfd);
+		close(sockfd);
+		return EXIT_SUCCESS;
+
+	}
+	Recieve_message(sockfd);
+
+	scanf("%s", message);
+	if(send(sockfd, message,strlen(message),0)==-1){
+				perror("send");
+			}
 	
 	
 
