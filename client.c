@@ -15,6 +15,7 @@
 #define NUM_MINES 10
 #define MAXDATASIZE 1000 /* max number of bytes we can get at once */
 
+
 typedef struct
 {
 	int adjacent_mines;
@@ -27,6 +28,31 @@ typedef struct
 	int great;
 	Tile tiles[NUM_TILES_X][NUM_TILES_Y];
 } Gamestate;
+
+int Receive_Array_Int_data(int socket_identifier)
+{
+	int number_of_bytes;
+	uint16_t statistics;
+	int results;
+
+	if ((number_of_bytes = recv(socket_identifier, &statistics, sizeof(uint16_t), 0)) == -1)
+	{
+		perror("recv");
+		exit(EXIT_FAILURE);
+	}
+
+	results = ntohs(statistics);
+
+	return results;
+}
+
+void Send_message(int socket, const void *message)
+{
+	if (send(socket, message, 1000, 0) == -1)
+	{
+		perror("send");
+	}
+}
 
 void Send_Array_Data(int socket_id, int *myArray)
 {
@@ -75,6 +101,7 @@ void Recieve_message_no_line(int socket)
 
 int main(int argc, char **argv)
 {
+
 
 	Gamestate *minegame = malloc(sizeof(Gamestate));
 	int sockfd, numbytes, i = 0;
@@ -166,64 +193,111 @@ int main(int argc, char **argv)
 
 	if (decision == 1)
 	{
-		for (int i = 0; i < 132; i++)
+		bool playing = true;
+		int num_mines;
+		int problem;
+		while (playing == true)
 		{
-			Recieve_message_no_line(sockfd);
-		}
+			Recieve_message(sockfd);
+			num_mines = Receive_Array_Int_data(sockfd);
+			printf("%d\n\n", num_mines);
 
-		printf("Choose an option:\n");
-		printf("<R> Reveal flag\n");
-		printf("<P> Place flag\n");
-		printf("<Q> Quit game\n\n");
-		printf("Option (R,P,Q): ");
-		int new;
-		while (1)
-		{
-			scanf("%s", message);
-			printf("%c,%c", message[0], message[1]);
-			new = (int)message[0];
-			if (new == 80 || new == 81 || new == 82)
+			for (int i = 0; i < 132; i++)
 			{
-				break;
+				Recieve_message_no_line(sockfd);
 			}
-			printf("Please Try again: ");
-		}
-		if (send(sockfd, message, strlen(message), 0) == -1)
-		{
-			perror("send");
-		}
-		if (new == 82)
-		{
+
+			printf("Choose an option:\n");
+			printf("<R> Reveal flag\n");
+			printf("<P> Place flag\n");
+			printf("<Q> Quit game\n\n");
+			printf("Option (R,P,Q): ");
+			int new;
+			/*checking option */
 			while (1)
 			{
-				int letter;
-				int number;
-				bool correctletter = false;
-				printf("\nEnter tile coordinate: ");
 				scanf("%s", message);
-				letter = (int)message[0];
-				number = (int)message[1];
-				if (65 <= letter && letter <= 73)
-				{
-					correctletter = true;
-				}
-				if (49 <= number && number <= 57 && correctletter == true)
+				new = (int)message[0];
+				if (new == 80 || new == 81 || new == 82)
 				{
 					break;
 				}
+				printf("\nPlease Try again: ");
 			}
 			if (send(sockfd, message, strlen(message), 0) == -1)
 			{
 				perror("send");
 			}
+			if (new == 82)
+			{
+				/*checking correct coordinates*/
+				while (1)
+				{
+					int letter;
+					int number;
+					bool correctletter = false;
+					printf("\nEnter tile coordinate: ");
+					scanf("%s", message);
+					letter = (int)message[0];
+					number = (int)message[1];
+					if (65 <= letter && letter <= 73)
+					{
+						correctletter = true;
+					}
+					if (49 <= number && number <= 57 && correctletter == true)
+					{
+						break;
+					}
+					printf("Make sure it's in format [Captial Letter][Number]\n");
+				}
+				if (send(sockfd, message, strlen(message), 0) == -1)
+				{
+					perror("send");
+				}
+			}
+			if (new == 80)
+			{
+				/*checking correct coordinates*/
+				while (1)
+				{
+					int letter;
+					int number;
+					bool correctletter = false;
+					printf("\nEnter tile coordinate: ");
+					scanf("%s", message);
+					letter = (int)message[0];
+					number = (int)message[1];
+					if (65 <= letter && letter <= 73)
+					{
+						correctletter = true;
+					}
+					if (49 <= number && number <= 57 && correctletter == true)
+					{
+						break;
+					}
+				}
+				if (send(sockfd, message, strlen(message), 0) == -1)
+				{
+					perror("send");
+				}
+			}
+			problem = Receive_Array_Int_data(sockfd);
+
+			if (problem == 1 || problem == 2|| problem == 3)
+			{
+				Recieve_message(sockfd);
+			}
+			if (problem == 9)
+			{
+				for (int i = 0; i < 132; i++)
+				{
+					Recieve_message_no_line(sockfd);
+				}
+				Recieve_message(sockfd);
+				playing = false;
+			}
 		}
 	}
-
-	for (int i = 0; i < 132; i++)
-	{
-		Recieve_message_no_line(sockfd);
-	}
-
 
 	close(sockfd);
 
