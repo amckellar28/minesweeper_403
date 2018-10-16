@@ -17,6 +17,9 @@
 #define NUM_MINES 10
 #define MAXDATASIZE 1000
 #define RANDOM_NUMBER_SEED 42
+#define R_Capital 82
+#define P_Capital 80
+#define Q_Capital 81
 
 #define BACKLOG 10
 
@@ -51,6 +54,7 @@ typedef struct
 	Tile tiles[NUM_TILES_X][NUM_TILES_Y];
 } Gamestate;
 
+/* Checks if tile contains a mine */
 bool tile_contains_mine(int x, int y, Gamestate *currentstate)
 {
 	if (currentstate->tiles[x][y].is_mine == true)
@@ -63,20 +67,21 @@ bool tile_contains_mine(int x, int y, Gamestate *currentstate)
 	}
 }
 
+/*Fills grid with number of adjacent mines */
 void number_of_adjacent_mines(Gamestate *currentstate)
 {
 	for (int i = 0; i < 9; i++)
 	{ //row
 		for (int j = 0; j < 9; j++)
 		{ //column
-			if (i - 1 > 0)
+			if (i - 1 >= 0)
 			{
 				if (currentstate->tiles[i - 1][j].is_mine == true)
 				{
 					currentstate->tiles[i][j].adjacent_mines++;
 				}
 			}
-			if (j - 1 > 0)
+			if (j - 1 >= 0)
 			{
 				if (currentstate->tiles[i][j - 1].is_mine == true)
 				{
@@ -97,21 +102,21 @@ void number_of_adjacent_mines(Gamestate *currentstate)
 					currentstate->tiles[i][j].adjacent_mines++;
 				}
 			}
-			if (i - 1 > 0 && j - 1 > 0)
+			if (i - 1 >= 0 && j - 1 >= 0)
 			{
 				if (currentstate->tiles[i - 1][j - 1].is_mine == true)
 				{
 					currentstate->tiles[i][j].adjacent_mines++;
 				}
 			}
-			if (i - 1 > 0 && j + 1 < 9)
+			if (i - 1 >= 0 && j + 1 < 9)
 			{
 				if (currentstate->tiles[i - 1][j + 1].is_mine == true)
 				{
 					currentstate->tiles[i][j].adjacent_mines++;
 				}
 			}
-			if (i + 1 < 9 && j - 1 > 0)
+			if (i + 1 < 9 && j - 1 >= 0)
 			{
 				if (currentstate->tiles[i + 1][j - 1].is_mine == true)
 				{
@@ -129,6 +134,7 @@ void number_of_adjacent_mines(Gamestate *currentstate)
 	}
 }
 
+/*Intialise game with mines */
 void place_mines(Gamestate *currentstate)
 {
 	/*resetting gamestate*/
@@ -157,27 +163,7 @@ void place_mines(Gamestate *currentstate)
 	number_of_adjacent_mines(currentstate);
 }
 
-int *Receive_Array_Int_data(int socket_identifier, int size)
-{
-	int number_of_bytes, i = 0;
-	uint16_t statistics;
-	int *results = malloc(sizeof(int) * size);
-
-	for (i = 0; i < size; i++)
-	{
-
-		if ((number_of_bytes = recv(socket_identifier, &statistics, sizeof(uint16_t), 0)) == -1)
-		{
-			perror("recv");
-			exit(EXIT_FAILURE);
-		}
-
-		results[i] = ntohs(statistics);
-	}
-
-	return results;
-}
-
+/*Recieves basic char message */
 char *Recieve_message(int socket)
 {
 	char *buf = malloc(sizeof(char) * MAXDATASIZE);
@@ -194,6 +180,7 @@ char *Recieve_message(int socket)
 	return buf;
 }
 
+/*Recieves basic number */
 void Send_message(int socket, const void *message)
 {
 	if (send(socket, message, 1000, 0) == -1)
@@ -202,6 +189,7 @@ void Send_message(int socket, const void *message)
 	}
 }
 
+/*Sends grid to client */
 void Send_gamestate(int socket, Gamestate *currentstate)
 {
 	char *showtile[9][9];
@@ -268,6 +256,136 @@ void Send_gamestate(int socket, Gamestate *currentstate)
 	}
 }
 
+/* Checks to see how many active mines are still out there */
+int Check_number_mines(int number_mines, Gamestate *currentstate)
+{
+	for (int i = 0; i < 9; i++)
+	{
+		for (int j = 0; j < 9; j++)
+		{
+			if (currentstate->tiles[i][j].is_mine == true)
+			{
+				number_mines++;
+			}
+			if (currentstate->tiles[i][j].flag == true && currentstate->tiles[i][j].is_mine == true)
+			{
+				number_mines--;
+			}
+		}
+	}
+	return number_mines;
+}
+
+/*Send int to client */
+void send_int(int number, int socket)
+{
+	uint16_t statistics;
+
+	statistics = htons(number);
+	send(socket, &statistics, sizeof(uint16_t), 0);
+}
+
+/*Reveals tiles when tile in question is a zero value */
+Gamestate *Reveal_function(Gamestate *currentstate, int x_cood, int y_cood)
+{
+
+	currentstate->tiles[x_cood][y_cood].revealed = true;
+	int index = 100;
+	while (index > 0)
+	{
+
+		for (int i = 0; i < 9; i++)
+		{
+			for (int j = 0; j < 9; j++)
+			{
+				if (currentstate->tiles[i][j].revealed == true && currentstate->tiles[i][j].adjacent_mines == 0 && currentstate->tiles[i][j].is_mine == false)
+				{
+					if (i - 1 >= 0)
+					{
+						if (currentstate->tiles[i - 1][j].is_mine == false)
+						{
+							currentstate->tiles[i - 1][j].revealed = true;
+						}
+					}
+					if (j - 1 >= 0)
+					{
+						if (currentstate->tiles[i][j - 1].is_mine == false)
+						{
+							currentstate->tiles[i][j - 1].revealed = true;
+						}
+					}
+					if (i + 1 < 9)
+					{
+						if (currentstate->tiles[i + 1][j].is_mine == false)
+						{
+							currentstate->tiles[i + 1][j].revealed = true;
+						}
+					}
+					if (j + 1 < 9)
+					{
+						if (currentstate->tiles[i][j + 1].is_mine == false)
+						{
+							currentstate->tiles[i][j + 1].revealed = true;
+						}
+					}
+					if (i - 1 >= 0 && j - 1 >= 0)
+					{
+						if (currentstate->tiles[i - 1][j - 1].is_mine == false)
+						{
+							currentstate->tiles[i - 1][j - 1].revealed = true;
+						}
+					}
+					if (i - 1 >= 0 && j + 1 < 9)
+					{
+						if (currentstate->tiles[i - 1][j + 1].is_mine == false)
+						{
+							currentstate->tiles[i - 1][j + 1].revealed = true;
+						}
+					}
+					if (i + 1 < 9 && j - 1 >= 0)
+					{
+						if (currentstate->tiles[i + 1][j - 1].is_mine == false)
+						{
+							currentstate->tiles[i + 1][j - 1].revealed = true;
+						}
+					}
+					if (i + 1 < 9 && j + 1 < 9)
+					{
+						if (currentstate->tiles[i + 1][j + 1].is_mine == false)
+						{
+							currentstate->tiles[i + 1][j + 1].revealed = true;
+						}
+					}
+				}
+			}
+		}
+		index--;
+	}
+	return currentstate;
+}
+
+/* Checks errors to see if it needs to send message to client */
+int Error_checker(int error_number, int socket)
+{
+	if (error_number == 1)
+	{
+		Send_message(socket, "Already Revealed!");
+		error_number = 0;
+	}
+	if (error_number == 2)
+	{
+		Send_message(socket, "Already Flagged!");
+		error_number = 0;
+	}
+	if (error_number == 3)
+	{
+		Send_message(socket, "No mine!");
+		error_number = 0;
+	}
+	return error_number;
+}
+
+/*main function */
 int main(int argc, char **argv)
 {
 	srand(RANDOM_NUMBER_SEED);
@@ -412,36 +530,35 @@ int main(int argc, char **argv)
 
 		if (!fork())
 		{
-
-			int *results = Receive_Array_Int_data(new_fd, 30);
-
-			for (i = 0; i < 30; i++)
-			{
-				printf("%d", results[i]);
-			}
-
+			/*Sends introduction message */
 			Send_message(new_fd, "================================================================================\nWelcome to the online Minesweeper gaming system\n================================================================================\n\nYou are required to log on with your registered user name and password.\n\nUsername:");
 
+			/*Recieves users name */
 			name = Recieve_message(new_fd);
-			printf("%s", name);
 
+			/*Asks for password */
 			Send_message(new_fd, "Password: ");
 
+			/* Recieves password*/
 			password = Recieve_message(new_fd);
-			printf("%s", password);
 
+			/* Welcomes them to gaming system */
 			Send_message(new_fd, "Welcome to the Minesweeper gaming system.\n\nPlease enter a selection:\n<1> Play Minesweeper\n<2> Show Leaderboard\n<3> Quit\n\nSelect option (1-3):");
 
+			/*Turns option into int */
 			char *option;
 			option = Recieve_message(new_fd);
 			int decision = atoi(option);
 
+			/*Quit*/
 			if (decision == 3)
 			{
 				Send_message(new_fd, "Thanks for playing!!\n");
 				close(new_fd);
 				exit(0);
 			}
+
+			/* Leaderboard */
 			if (decision == 2)
 			{
 				Send_message(new_fd, "leaderboard selected");
@@ -460,35 +577,18 @@ int main(int argc, char **argv)
 
 					Send_message(new_fd, "Remaining mines: ");
 					int number_mines = 0;
-					for (int i = 0; i < 9; i++)
-					{
-						for (int j = 0; j < 9; j++)
-						{
-							if (currentgame->tiles[i][j].is_mine == true)
-							{
-								number_mines++;
-							}
-							if (currentgame->tiles[i][j].flag == true && currentgame->tiles[i][j].is_mine == true)
-							{
-								number_mines--;
-							}
-						}
-					}
-					uint16_t statistics;
-
-					statistics = htons(number_mines);
-					send(new_fd, &statistics, sizeof(uint16_t), 0);
+					number_mines = Check_number_mines(number_mines, currentgame);
+					send_int(number_mines, new_fd);
 
 					Send_gamestate(new_fd, currentgame);
 					option = Recieve_message(new_fd);
-					int new = (int)option[0];
-					printf("%d", new);
-					if (new == 82)
+					int move = (int)option[0];
+					/*Reveal Option */
+					if (move == R_Capital)
 					{
 						char *coordinate;
 						int x_cood;
 						int y_cood;
-						printf("reveal");
 						coordinate = Recieve_message(new_fd);
 						y_cood = (int)coordinate[0] - 65;
 						x_cood = (int)coordinate[1] - 49;
@@ -503,133 +603,46 @@ int main(int argc, char **argv)
 						}
 						else
 						{
-							if (currentgame->tiles[x_cood][y_cood].adjacent_mines > 0)
-							{
-								currentgame->tiles[x_cood][y_cood].revealed = true;
-							}
-							else
-							{
-								currentgame->tiles[x_cood][y_cood].revealed = true;
-								int index = 9;
-								while (index > 0)
-								{
-
-									for (int i = 0; i < 9; i++)
-									{
-										for (int j = 0; j < 9; j++)
-										{
-											if (currentgame->tiles[i][j].revealed == true && currentgame->tiles[i][j].adjacent_mines == 0 && currentgame->tiles[i][j].is_mine == false)
-											{
-												if (i - 1 >= 0)
-												{
-													if (currentgame->tiles[i - 1][j].is_mine == false)
-													{
-														currentgame->tiles[i - 1][j].revealed = true;
-													}
-												}
-												if (j - 1 >= 0)
-												{
-													if (currentgame->tiles[i][j - 1].is_mine == false)
-													{
-														currentgame->tiles[i][j - 1].revealed = true;
-													}
-												}
-												if (i + 1 < 9)
-												{
-													if (currentgame->tiles[i + 1][j].is_mine == false)
-													{
-														currentgame->tiles[i + 1][j].revealed = true;
-													}
-												}
-												if (j + 1 < 9)
-												{
-													if (currentgame->tiles[i][j + 1].is_mine == false)
-													{
-														currentgame->tiles[i][j + 1].revealed = true;
-													}
-												}
-												if (i - 1 >= 0 && j - 1 >= 0)
-												{
-													if (currentgame->tiles[i - 1][j - 1].is_mine == false)
-													{
-														currentgame->tiles[i - 1][j - 1].revealed = true;
-													}
-												}
-												if (i - 1 >= 0 && j + 1 < 9)
-												{
-													if (currentgame->tiles[i - 1][j + 1].is_mine == false)
-													{
-														currentgame->tiles[i - 1][j + 1].revealed = true;
-													}
-												}
-												if (i + 1 < 9 && j - 1 >= 0)
-												{
-													if (currentgame->tiles[i + 1][j - 1].is_mine == false)
-													{
-														currentgame->tiles[i + 1][j - 1].revealed = true;
-													}
-												}
-												if (i + 1 < 9 && j + 1 < 9)
-												{
-													if (currentgame->tiles[i + 1][j + 1].is_mine == false)
-													{
-														currentgame->tiles[i + 1][j + 1].revealed = true;
-													}
-												}
-											}
-										}
-									}
-									index--;
-								}
-							}
+							currentgame = Reveal_function(currentgame, x_cood, y_cood);
 						}
 					}
-					if (new == 80)
+					/*Place flag option */
+					if (move == P_Capital)
 					{
-						printf("Place");
 						char *coordinate;
 						int x_cood;
 						int y_cood;
 						coordinate = Recieve_message(new_fd);
 						y_cood = (int)coordinate[0] - 65;
 						x_cood = (int)coordinate[1] - 49;
-						if(currentgame->tiles[x_cood][y_cood].flag == true){
+						if (currentgame->tiles[x_cood][y_cood].flag == true)
+						{
 							problem = 2;
-						}else if(currentgame->tiles[x_cood][y_cood].is_mine == true){
+						}
+						else if (currentgame->tiles[x_cood][y_cood].is_mine == true)
+						{
 							currentgame->tiles[x_cood][y_cood].revealed = true;
 							currentgame->tiles[x_cood][y_cood].flag = true;
-							if(number_mines-1 == 0){
+							if (number_mines - 1 == 0)
+							{
 								problem = 9;
 							}
-						} else{
+						}
+						else
+						{
 							problem = 3;
 						}
-						
 					}
-					if (new == 81)
+					if (move == Q_Capital)
 					{
-						printf("Quit");
 						problem = 9;
 					}
 
-					statistics = htons(problem);
-					send(new_fd, &statistics, sizeof(uint16_t), 0);
+					send_int(problem, new_fd);
 
-					if (problem == 1)
-					{
-						Send_message(new_fd, "Already Revealed!");
-						problem = 0;
-					}
-					if (problem == 2)
-					{
-						Send_message(new_fd, "Already Flagged!");
-						problem = 0;
-					}
-					if (problem == 3)
-					{
-						Send_message(new_fd, "No mine!");
-						problem = 0;
-					}
+					problem = Error_checker(problem, new_fd);
+
+					/*End game*/
 					if (problem == 9)
 					{
 						Send_gamestate(new_fd, currentgame);

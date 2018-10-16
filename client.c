@@ -54,17 +54,6 @@ void Send_message(int socket, const void *message)
 	}
 }
 
-void Send_Array_Data(int socket_id, int *myArray)
-{
-	int i = 0;
-	uint16_t statistics;
-
-	for (i = 0; i < 30; i++)
-	{
-		statistics = htons(myArray[i]);
-		send(socket_id, &statistics, sizeof(uint16_t), 0);
-	}
-}
 
 void Recieve_message(int socket)
 {
@@ -138,14 +127,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	int simpleArray[30] = {0};
-	for (i = 0; i < 30; i++)
-	{
-		simpleArray[i] = i * i;
-		printf("%d", simpleArray[i]);
-	}
 
-	Send_Array_Data(sockfd, simpleArray);
 
 	Recieve_message(sockfd);
 
