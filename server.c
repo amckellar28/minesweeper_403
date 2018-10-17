@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <time.h>
 
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
@@ -133,6 +134,8 @@ void number_of_adjacent_mines(Gamestate *currentstate)
 		}
 	}
 }
+
+
 
 /*Intialise game with mines */
 void place_mines(Gamestate *currentstate)
@@ -543,12 +546,21 @@ int main(int argc, char **argv)
 			password = Recieve_message(new_fd);
 
 			/* Welcomes them to gaming system */
-			Send_message(new_fd, "Welcome to the Minesweeper gaming system.\n\nPlease enter a selection:\n<1> Play Minesweeper\n<2> Show Leaderboard\n<3> Quit\n\nSelect option (1-3):");
-
-			/*Turns option into int */
 			char *option;
+			int decision;
+			bool ended = false;
+
+			while(ended == false){
+			Send_message(new_fd, "Welcome to the Minesweeper gaming system.\n\nPlease enter a selection:\n<1> Play Minesweeper\n<2> Show Leaderboard\n<3> Quit\n\nSelect option (1-3):");
+			
+			/*Turns option into int */
+			
 			option = Recieve_message(new_fd);
-			int decision = atoi(option);
+			
+			
+			decision = atoi(option);
+			printf("%d",decision);
+			
 
 			/*Quit*/
 			if (decision == 3)
@@ -556,6 +568,7 @@ int main(int argc, char **argv)
 				Send_message(new_fd, "Thanks for playing!!\n");
 				close(new_fd);
 				exit(0);
+				ended = true;
 			}
 
 			/* Leaderboard */
@@ -563,6 +576,9 @@ int main(int argc, char **argv)
 			{
 				Send_message(new_fd, "leaderboard selected");
 			}
+			
+
+
 			if (decision == 1)
 			{
 				/*intialising game */
@@ -570,6 +586,11 @@ int main(int argc, char **argv)
 				Gamestate *currentgame = malloc(sizeof(Gamestate));
 				place_mines(currentgame);
 				int problem = 0;
+
+				/*start Timer*/
+				time_t intial_seconds;
+				intial_seconds = time(NULL);
+				time_t time_taken;
 
 				/*starting game */
 				while (playing == true)
@@ -625,7 +646,7 @@ int main(int argc, char **argv)
 							currentgame->tiles[x_cood][y_cood].flag = true;
 							if (number_mines - 1 == 0)
 							{
-								problem = 9;
+								problem = 8;
 							}
 						}
 						else
@@ -642,14 +663,31 @@ int main(int argc, char **argv)
 
 					problem = Error_checker(problem, new_fd);
 
-					/*End game*/
-					if (problem == 9)
+					/*End game Success*/
+					if (problem == 8)
 					{
 						Send_gamestate(new_fd, currentgame);
-						Send_message(new_fd, "End of Game");
+						Send_message(new_fd, "You Win!\nEnd of Game\n");
+						playing = false;
+					}
+
+					/*End game fail*/
+					if (problem == 9)
+					{
+						time_taken = time(NULL) - intial_seconds;
+						int sending_time = (time_t)time_taken;
+
+					
+						Send_gamestate(new_fd, currentgame);
+						Send_message(new_fd, "You took ");
+						send_int(sending_time, new_fd);
+						
+						
+						Send_message(new_fd, "You lose!\nEnd of Game\n");
 						playing = false;
 					}
 				}
+			}
 			}
 
 			close(new_fd);

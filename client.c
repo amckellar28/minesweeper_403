@@ -139,17 +139,26 @@ int main(int argc, char **argv)
 		perror("send");
 	}
 
+	/*asking for password*/
 	Recieve_message(sockfd);
 
+	/*sending password */
 	scanf("%s", message);
 	if (send(sockfd, message, strlen(message), 0) == -1)
 	{
 		perror("send");
 	}
 
+	int decision;
+	bool ended = false;
+
+	while(ended == false){
+
 	Recieve_message(sockfd);
 
-	int decision;
+	
+
+	/*Testing for proper input for outer decision */
 	while (1)
 	{
 		scanf("%s", message);
@@ -158,20 +167,30 @@ int main(int argc, char **argv)
 		{
 			break;
 		}
-		printf("\nPlease select one of the three options: \n");
+		printf("\nPlease select one of the three options: ");
 	}
+	
+	
 
 	if (send(sockfd, message, strlen(message), 0) == -1)
 	{
 		perror("send");
 	}
+	
 
+	/*Quitting */
 	if (decision == 3)
 	{
 		Recieve_message(sockfd);
 		close(sockfd);
 		return EXIT_SUCCESS;
 	}
+
+	/*Leaderboard*/
+	if(decision == 2){
+		Recieve_message(sockfd);
+	}
+	
 
 	if (decision == 1)
 	{
@@ -269,16 +288,21 @@ int main(int argc, char **argv)
 			{
 				Recieve_message(sockfd);
 			}
-			if (problem == 9)
+			if (problem == 8||problem == 9)
 			{
+				int time_taken;
 				for (int i = 0; i < 132; i++)
 				{
 					Recieve_message_no_line(sockfd);
 				}
 				Recieve_message(sockfd);
+				time_taken = Receive_Array_Int_data(sockfd);
+				printf("%d", time_taken);
+				Recieve_message(sockfd);
 				playing = false;
 			}
 		}
+	}
 	}
 
 	close(sockfd);
